@@ -1,22 +1,48 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { 
+	CaseDatabase, 
+	CaseDatabasesResponse, 
+	CaseDatabaseSchema, 
+	CaseDatabasesResponseSchema,
+	sampleCaseDatabases 
+} from "./schema.js";
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
-		name: "Authless Calculator",
+		name: "CanLII Database Tool",
 		version: "1.0.0",
 	});
 
 	async init() {
-		// Simple addition tool
+		// Case databases tool
 		this.server.tool(
-			"add",
-			{ a: z.number(), b: z.number() },
-			async ({ a, b }) => ({
-				content: [{ type: "text", text: String(a + b) }],
-			})
+			"get_case_databases",
+			{
+				jurisdiction: z.string().optional().describe("Filter by jurisdiction (e.g., 'on', 'nl', 'nb')"),
+			},
+			async ({ jurisdiction }) => {
+				// Filter databases by jurisdiction if provided
+				let databases = sampleCaseDatabases.caseDatabases;
+				
+				if (jurisdiction) {
+					databases = databases.filter(db => db.jurisdiction === jurisdiction);
+				}
+
+				const response: CaseDatabasesResponse = { caseDatabases: databases };
+				
+				// Validate response using Zod schema
+				const validatedResponse = CaseDatabasesResponseSchema.parse(response);
+				
+				return {
+					content: [{
+						type: "text",
+						text: JSON.stringify(validatedResponse, null, 2)
+					}]
+				};
+			}
 		);
 
 		// Calculator tool with multiple operations
