@@ -1,86 +1,71 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { 
-	CaseDatabase, 
-	CaseDatabasesResponse, 
-	CaseDatabaseSchema, 
-	CaseDatabasesResponseSchema,
-	sampleCaseDatabases 
-} from "./schema.js";
+import { CaseDatabase, CaseDatabasesResponse, CaseDatabaseSchema, CaseDatabasesResponseSchema } from "./schema.js";
+
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
-		name: "CanLII Database Tool",
+		name: "CanLii MCP",
 		version: "1.0.0",
 	});
 
+	private apiKey: string;
+
+	constructor(state: DurableObjectState, env: Env) {
+		super(state, env);
+		this.apiKey = env.CANLII_API;
+	}
+
 	async init() {
-		// Case databases tool
-		this.server.tool(
-			"get_case_databases",
-			{
-				jurisdiction: z.string().optional().describe("Filter by jurisdiction (e.g., 'on', 'nl', 'nb')"),
-			},
-			async ({ jurisdiction }) => {
-				// Filter databases by jurisdiction if provided
-				let databases = sampleCaseDatabases.caseDatabases;
-				
-				if (jurisdiction) {
-					databases = databases.filter(db => db.jurisdiction === jurisdiction);
-				}
 
-				const response: CaseDatabasesResponse = { caseDatabases: databases };
-				
-				// Validate response using Zod schema
-				const validatedResponse = CaseDatabasesResponseSchema.parse(response);
-				
-				return {
-					content: [{
-						type: "text",
-						text: JSON.stringify(validatedResponse, null, 2)
-					}]
-				};
-			}
-		);
 
-		// Calculator tool with multiple operations
+		// first canlii tool search the data base
 		this.server.tool(
-			"calculate",
+			"get_databases",
 			{
-				operation: z.enum(["add", "subtract", "multiply", "divide"]),
-				a: z.number(),
-				b: z.number(),
+				language: z.string().describe("The language option only supports 'en' or 'fr'"),
 			},
-			async ({ operation, a, b }) => {
-				let result: number;
-				switch (operation) {
-					case "add":
-						result = a + b;
-						break;
-					case "subtract":
-						result = a - b;
-						break;
-					case "multiply":
-						result = a * b;
-						break;
-					case "divide":
-						if (b === 0)
-							return {
-								content: [
-									{
-										type: "text",
-										text: "Error: Cannot divide by zero",
-									},
-								],
-							};
-						result = a / b;
-						break;
+			async ({ language }) => {
+				try {
+					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/?api_key=${this.env}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch databases (${response.status})`,
+								},
+							],
+						};
+					}
+
+					const data = await response.json();
+					const parsed = CaseDatabasesResponseSchema.parse(data);
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
 				}
-				return { content: [{ type: "text", text: String(result) }] };
 			}
-		);
+		)
+
 	}
 }
 
