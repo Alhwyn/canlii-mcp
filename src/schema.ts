@@ -28,6 +28,10 @@ export const CasesResponseSchema = z.object({
     cases: z.array(CaseSchema),
 });
 
+export const CitedCasesResponseSchema = z.object({
+    citedCases: z.array(CaseSchema),
+});
+
 export const CaseMetadataSchema = z.object({
     databaseId: z.string(),
     caseId: z.string(),
@@ -48,4 +52,5 @@ export type Case = z.infer<typeof CaseSchema>;
 
 export type CaseDatabasesResponse = z.infer<typeof CaseDatabasesResponseSchema>;
 export type CasesResponse = z.infer<typeof CasesResponseSchema>;
+export type CitedCasesResponse = z.infer<typeof CitedCasesResponseSchema>;
 export type CaseMetadataResponse = z.infer<typeof CaseMetadataSchema>;

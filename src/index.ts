@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema } from "./schema.js";
+import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema } from "./schema.js";
 
 
 // Define our MCP agent with tools
@@ -23,7 +23,7 @@ export class MyMCP extends McpAgent {
 		this.server.tool(
 			"get_canlii_databases",
 			{
-				language: z.string().describe("The language option only supports 'en' or 'fr'"),
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
 			},
 			async ({ language }) => {
 				try {
@@ -65,9 +65,56 @@ export class MyMCP extends McpAgent {
 		);
 
 		this.server.tool(
+			"get_case_citator",
+			{
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
+				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
+				caseId: z.string().describe("The case's unique identifier, as returned by the previous type of call. Generally corresponds to the CanLII citation."),
+				metadataType: z.enum(["citedCases", "citingCases", "citedLegislations"]).describe("The type of citation metadata to fetch: citedCases (what this case cites), citingCases (what cases cite this case), or citedLegislations (what legislation this case cites)"),
+			},
+			async ({ language, databaseId, caseId, metadataType }) => {
+				try {
+					const response = await fetch(`https://api.canlii.org/v1/caseCitator/${language}/${databaseId}/${caseId}/${metadataType}?api_key=${this.apiKey}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch case citator data (${response.status})`,
+								},
+							],
+						};
+					}
+
+					const data = await response.json();
+					const parsed = CitedCasesResponseSchema.parse(data);
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
+				}
+			}
+		);
+
+		this.server.tool(
 			"get_case_metadata",
 			{
-				language: z.string().describe("The language option only supports 'en' or 'fr'"),
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
 				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
 				caseId: z.string().describe("The case's unique identifier, as returned by the previous type of call. Generally corresponds to the CanLII citation."),
 			},
@@ -113,7 +160,7 @@ export class MyMCP extends McpAgent {
 		this.server.tool(
 			"get_case_law_decisions",
 			{
-				language: z.string().describe("The language option only supports 'en' or 'fr'"),
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
 				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
 				offset: z.number().describe("The record number from which to start returning results. Using 0 will return the records most recently added to that database"),
 				resultCount: z.number().max(10000).describe("The length of the list of results that will be returned. Max 10,000"),
