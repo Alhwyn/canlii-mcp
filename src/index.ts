@@ -88,6 +88,75 @@ export class MyMCP extends McpAgent {
 		);
 
 		this.server.tool(
+			"browse_legislation",
+			{
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
+				databaseId: z.string().describe("The code for the database for which you want a list. Generally, this will be the provincial or territorial two-letter code, followed by either 's' (for statutes), 'r' (for regulations), or 'a'"),
+				
+				// optional date parameters
+				publishedBefore: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				publishedAfter: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				modifiedBefore: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				modifiedAfter: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				changedBefore: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				changedAfter: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				decisionDateBefore: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
+				decisionDateAfter: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
+			},
+			async ({ language, databaseId, publishedBefore, publishedAfter, modifiedBefore, modifiedAfter, changedBefore, changedAfter, decisionDateBefore, decisionDateAfter }) => {
+				try {
+					const params = new URLSearchParams({
+						api_key: this.apiKey,
+					});
+
+					if (publishedBefore) params.append('publishedBefore', publishedBefore);
+					if (publishedAfter) params.append('publishedAfter', publishedAfter);
+					if (modifiedBefore) params.append('modifiedBefore', modifiedBefore);
+					if (modifiedAfter) params.append('modifiedAfter', modifiedAfter);
+					if (changedBefore) params.append('changedBefore', changedBefore);
+					if (changedAfter) params.append('changedAfter', changedAfter);
+					if (decisionDateBefore) params.append('decisionDateBefore', decisionDateBefore);
+					if (decisionDateAfter) params.append('decisionDateAfter', decisionDateAfter);
+
+
+					const response = await fetch(`https://api.canlii.org/v1/legislationBrowse/${language}/${databaseId}/?${params.toString()}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch databases (${response.status})`,
+								},
+							],
+						};
+					}
+
+					const data = await response.json();
+					const parsed = LegislationItemResponseSchema.parse(data);
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
+				}
+			}
+		);
+
+		this.server.tool(
 			"get_legislation_databases",
 			{
 				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),

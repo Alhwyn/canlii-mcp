@@ -63,7 +63,6 @@ export const LegislationItemSchema = z.object({
     type: z.string(),
 });
 
-
 export const LegislationItemResponseSchema = z.object({
     legislations: z.array(LegislationItemSchema),
 });
