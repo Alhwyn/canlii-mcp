@@ -1,50 +1,248 @@
-# Building a Remote MCP Server on Cloudflare (Without Auth)
+# CanLII MCP Server
 
-This example allows you to deploy a remote MCP server that doesn't require authentication on Cloudflare Workers. 
+A Model Context Protocol (MCP) server that provides access to the CanLII (Canadian Legal Information Institute) API. This server allows AI assistants to search and retrieve Canadian legal information including court decisions, legislation, and legal citations.
 
-## Get started: 
+## Prerequisites
 
-[![Deploy to Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/ai/tree/main/demos/remote-mcp-authless)
+- A CanLII API key (obtain from [CanLII API](https://api.canlii.org/))
+- Node.js and npm
+- Cloudflare Workers account (for deployment)
 
-This will deploy your MCP server to a URL like: `remote-mcp-server-authless.<your-account>.workers.dev/sse`
+## Setup
 
-Alternatively, you can use the command line below to get the remote MCP Server created on your local machine:
+### 1. Clone and Install Dependencies
+
 ```bash
-npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/remote-mcp-authless
+git clone <repository-url>
+cd canlii-mcp
+npm install
 ```
 
-## Customizing your MCP Server
+### 2. Configure Environment Variables
 
-To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`. 
+Create a `.env` file or configure your Cloudflare Workers environment with:
 
-## Connect to Cloudflare AI Playground
+```bash
+CANLII_API=your_canlii_api_key_here
+```
 
-You can connect to your MCP server from the Cloudflare AI Playground, which is a remote MCP client:
+For Cloudflare Workers deployment, set the environment variable using:
 
-1. Go to https://playground.ai.cloudflare.com/
-2. Enter your deployed MCP server URL (`remote-mcp-server-authless.<your-account>.workers.dev/sse`)
-3. You can now use your MCP tools directly from the playground!
+```bash
+wrangler secret put CANLII_API
+```
 
-## Connect Claude Desktop to your MCP server
+### 3. Local Development
 
-You can also connect to your remote MCP server from local MCP clients, by using the [mcp-remote proxy](https://www.npmjs.com/package/mcp-remote). 
+```bash
+npm run dev
+```
 
-To connect to your MCP server from Claude Desktop, follow [Anthropic's Quickstart](https://modelcontextprotocol.io/quickstart/user) and within Claude Desktop go to Settings > Developer > Edit Config.
+This will start the server locally at `http://localhost:8787`
 
-Update with this configuration:
+### 4. Deploy to Cloudflare Workers
+
+```bash
+npm run deploy
+```
+
+## Available Tools
+
+### 1. get_courts_and_tribunals
+
+Retrieves a list of available courts and tribunals databases.
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- Optional date filters: `publishedBefore`, `publishedAfter`, `modifiedBefore`, `modifiedAfter`, `changedBefore`, `changedAfter`, `decisionDateBefore`, `decisionDateAfter`
+
+### 2. get_legislation_databases
+
+Gets available legislation databases (statutes, regulations, etc.).
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- Optional date filters (same as above)
+
+### 3. browse_legislation
+
+Browse legislation within a specific database.
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- `databaseId` (required): Database code (e.g., "cas" for Canada Statutes, "car" for Canada Regulations)
+- Optional date filters
+
+### 4. get_legislation_regulation_metadata
+
+Get detailed metadata for a specific piece of legislation.
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- `databaseId` (required): Database identifier
+- `legislationId` (required): Specific legislation ID
+
+### 5. get_case_law_decisions
+
+Retrieve case law decisions from a specific database.
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- `databaseId` (required): Database identifier
+- `offset` (required): Starting record number
+- `resultCount` (required): Number of results (max 10,000)
+- Optional date filters
+
+### 6. get_case_metadata
+
+Get detailed metadata for a specific court case.
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- `databaseId` (required): Database identifier
+- `caseId` (required): Case identifier
+- Optional date filters
+
+### 7. get_case_citator
+
+Get citation information for cases (what cases cite this case, what this case cites, etc.).
+
+**Parameters:**
+
+- `language` (required): "en" or "fr"
+- `databaseId` (required): Database identifier
+- `caseId` (required): Case identifier
+- `metadataType` (required): "citedCases", "citingCases", or "citedLegislations"
+- Optional date filters
+
+## Connecting to Claude Desktop
+
+1. Install the [mcp-remote proxy](https://www.npmjs.com/package/mcp-remote):
+
+   ```bash
+   npm install -g mcp-remote
+   ```
+
+2. In Claude Desktop, go to Settings > Developer > Edit Config and add:
 
 ```json
 {
   "mcpServers": {
-    "calculator": {
+    "canlii": {
       "command": "npx",
-      "args": [
-        "mcp-remote",
-        "http://localhost:8787/sse"  // or remote-mcp-server-authless.your-account.workers.dev/sse
-      ]
+      "args": ["mcp-remote", "http://localhost:8787/sse"]
     }
   }
 }
 ```
 
-Restart Claude and you should see the tools become available. 
+For deployed servers, replace the URL with your Cloudflare Workers URL:
+
+```
+https://your-worker-name.your-account.workers.dev/sse
+```
+
+3. Restart Claude Desktop
+
+## Connecting to Cloudflare AI Playground
+
+1. Go to https://playground.ai.cloudflare.com/
+2. Enter your MCP server URL: `https://your-worker-name.your-account.workers.dev/sse`
+3. The CanLII tools will be available in the playground
+
+## Usage Examples
+
+### Finding Court Decisions
+
+```typescript
+// Get available courts and tribunals
+await get_courts_and_tribunals({
+  language: "en",
+});
+
+// Browse recent decisions from Supreme Court of Canada
+await get_case_law_decisions({
+  language: "en",
+  databaseId: "scc-csc",
+  offset: 0,
+  resultCount: 10,
+});
+```
+
+### Searching Legislation
+
+```typescript
+// Get legislation databases
+await get_legislation_databases({
+  language: "en",
+});
+
+// Browse federal statutes
+await browse_legislation({
+  language: "en",
+  databaseId: "cas",
+});
+
+// Get specific act metadata
+await get_legislation_regulation_metadata({
+  language: "en",
+  databaseId: "cas",
+  legislationId: "criminal-code",
+});
+```
+
+### Case Citations
+
+```typescript
+// Get case metadata
+await get_case_metadata({
+  language: "en",
+  databaseId: "scc-csc",
+  caseId: "2023scc1",
+});
+
+// Find cases that cite this case
+await get_case_citator({
+  language: "en",
+  databaseId: "scc-csc",
+  caseId: "2023scc1",
+  metadataType: "citingCases",
+});
+```
+
+## Development
+
+### Scripts
+
+- `npm run dev` - Start local development server
+- `npm run deploy` - Deploy to Cloudflare Workers
+- `npm run format` - Format code with Biome
+- `npm run lint:fix` - Fix linting issues
+- `npm run type-check` - Run TypeScript type checking
+
+### Project Structure
+
+```
+src/
+├── index.ts          # Main MCP server implementation
+├── schema.ts         # Zod schemas for API responses
+└── worker-configuration.d.ts  # TypeScript declarations
+```
+
+## API Rate Limits
+
+Be aware of CanLII API rate limits and usage terms. The API is intended for research and educational purposes.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
