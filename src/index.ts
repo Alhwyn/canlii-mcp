@@ -1,60 +1,71 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { CaseDatabase, CaseDatabasesResponse, CaseDatabaseSchema, CaseDatabasesResponseSchema } from "./schema.js";
+
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
-		name: "Authless Calculator",
+		name: "CanLii MCP",
 		version: "1.0.0",
 	});
 
-	async init() {
-		// Simple addition tool
-		this.server.tool(
-			"add",
-			{ a: z.number(), b: z.number() },
-			async ({ a, b }) => ({
-				content: [{ type: "text", text: String(a + b) }],
-			})
-		);
+	private apiKey: string;
 
-		// Calculator tool with multiple operations
+	constructor(state: DurableObjectState, env: Env) {
+		super(state, env);
+		this.apiKey = env.CANLII_API;
+	}
+
+	async init() {
+
+
+		// first canlii tool search the data base
 		this.server.tool(
-			"calculate",
+			"get_canlii_databases",
 			{
-				operation: z.enum(["add", "subtract", "multiply", "divide"]),
-				a: z.number(),
-				b: z.number(),
+				language: z.string().describe("The language option only supports 'en' or 'fr'"),
 			},
-			async ({ operation, a, b }) => {
-				let result: number;
-				switch (operation) {
-					case "add":
-						result = a + b;
-						break;
-					case "subtract":
-						result = a - b;
-						break;
-					case "multiply":
-						result = a * b;
-						break;
-					case "divide":
-						if (b === 0)
-							return {
-								content: [
-									{
-										type: "text",
-										text: "Error: Cannot divide by zero",
-									},
-								],
-							};
-						result = a / b;
-						break;
+			async ({ language }) => {
+				try {
+					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/?api_key=${this.apiKey}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch databases (${response.status})`,
+								},
+							],
+						};
+					}
+
+					const data = await response.json();
+					const parsed = CaseDatabasesResponseSchema.parse(data);
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
 				}
-				return { content: [{ type: "text", text: String(result) }] };
 			}
-		);
+		)
+
 	}
 }
 

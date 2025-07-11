@@ -4,6 +4,7 @@
 declare namespace Cloudflare {
 	interface Env {
 		MCP_OBJECT: DurableObjectNamespace<import("./src/index").MyMCP>;
+		CANLII_API: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
