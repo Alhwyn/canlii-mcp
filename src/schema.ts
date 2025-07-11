@@ -7,7 +7,6 @@ export const CaseDatabaseSchema = z.object({
     name: z.string(),
 });
 
-
 export const CaseDatabasesResponseSchema = z.object({
     caseDatabases: z.array(CaseDatabaseSchema),
 });
@@ -44,6 +43,19 @@ export const CaseMetadataSchema = z.object({
     keywords: z.string(),
     concatenatedId: z.string(),
 });
+
+export const LegislationSchema = z.object({
+    databaseId: z.string(),
+    type: z.string(),
+    jurisdiction: z.string(),
+    name: z.string(),
+});
+
+export const LegislationResponseSchema = z.object({
+    legislationDatabases: z.array(LegislationSchema),
+});
+
+
 
 
 export type CaseDatabase = z.infer<typeof CaseDatabaseSchema>;

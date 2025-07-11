@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema } from "./schema.js";
+import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema, LegislationResponseSchema } from "./schema.js";
 
 
 // Define our MCP agent with tools
@@ -21,7 +21,7 @@ export class MyMCP extends McpAgent {
 	async init() {
 
 		this.server.tool(
-			"get_canlii_databases",
+			"get_courts_and_tribunals",
 			{
 				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
 			},
@@ -63,6 +63,50 @@ export class MyMCP extends McpAgent {
 				}
 			}
 		);
+
+		this.server.tool(
+			"get_legislation_databases",
+			{
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
+			},
+			async ({ language }) => {
+				try {
+					const response = await fetch(`https://api.canlii.org/v1/legislationBrowse/${language}/?api_key=${this.apiKey}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch case citator data (${response.status})`,
+								},
+							],
+						};
+					};
+
+					const data = await response.json();
+					const parsed = LegislationResponseSchema.parse(data);
+					
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
+				};
+			}
+		)
 
 		this.server.tool(
 			"get_case_citator",
