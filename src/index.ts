@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CaseDatabasesResponseSchema } from "./schema.js";
+import { CaseDatabasesResponseSchema, CasesResponseSchema } from "./schema.js";
 
 
 // Define our MCP agent with tools
@@ -114,12 +114,13 @@ export class MyMCP extends McpAgent {
 					}
 
 					const data = await response.json();
+					const parsed = CasesResponseSchema.parse(data);
 
 					return {
 						content: [
 							{
 								type: "text",
-								text: JSON.stringify(data, null, 2),
+								text: JSON.stringify(parsed, null, 2),
 							},
 						],
 					};
