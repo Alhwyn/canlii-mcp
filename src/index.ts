@@ -23,13 +23,13 @@ export class MyMCP extends McpAgent {
 
 		// first canlii tool search the data base
 		this.server.tool(
-			"get_databases",
+			"get_canlii_databases",
 			{
 				language: z.string().describe("The language option only supports 'en' or 'fr'"),
 			},
 			async ({ language }) => {
 				try {
-					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/?api_key=${this.env}`);
+					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/?api_key=${this.apiKey}`);
 
 					if (!response.ok) {
 						return {
