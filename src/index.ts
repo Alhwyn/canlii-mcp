@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CaseDatabasesResponseSchema, CasesResponseSchema } from "./schema.js";
+import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema } from "./schema.js";
 
 
 // Define our MCP agent with tools
@@ -63,6 +63,52 @@ export class MyMCP extends McpAgent {
 				}
 			}
 		);
+
+		this.server.tool(
+			"get_case_metadata",
+			{
+				language: z.string().describe("The language option only supports 'en' or 'fr'"),
+				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
+				caseId: z.string().describe("The case's unique identifier, as returned by the previous type of call. Generally corresponds to the CanLII citation."),
+			},
+			async ({ language, databaseId, caseId }) => {
+				try {
+					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/${databaseId}/${caseId}/?api_key=${this.apiKey}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch case metadata (${response.status})`,
+								},
+							],
+						};
+					};
+
+					const data = await response.json();
+					const parsed = CaseMetadataSchema.parse(data);
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
+				}
+			}
+		)
 
 		this.server.tool(
 			"get_case_law_decisions",
