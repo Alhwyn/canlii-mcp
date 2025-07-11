@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema, LegislationResponseSchema } from "./schema.js";
+import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema, CitingCasesResponseSchema, CitedLegislationsResponseSchema, LegislationResponseSchema, LegislationItemResponseSchema } from "./schema.js";
 
 
 // Define our MCP agent with tools
@@ -24,10 +24,33 @@ export class MyMCP extends McpAgent {
 			"get_courts_and_tribunals",
 			{
 				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
+				
+				// optional date parameters
+				publishedBefore: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				publishedAfter: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				modifiedBefore: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				modifiedAfter: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				changedBefore: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				changedAfter: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				decisionDateBefore: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
+				decisionDateAfter: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
 			},
-			async ({ language }) => {
+			async ({ language, publishedBefore, publishedAfter, modifiedBefore, modifiedAfter, changedBefore, changedAfter, decisionDateBefore, decisionDateAfter }) => {
 				try {
-					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/?api_key=${this.apiKey}`);
+					const params = new URLSearchParams({
+						api_key: this.apiKey,
+					});
+
+					if (publishedBefore) params.append('publishedBefore', publishedBefore);
+					if (publishedAfter) params.append('publishedAfter', publishedAfter);
+					if (modifiedBefore) params.append('modifiedBefore', modifiedBefore);
+					if (modifiedAfter) params.append('modifiedAfter', modifiedAfter);
+					if (changedBefore) params.append('changedBefore', changedBefore);
+					if (changedAfter) params.append('changedAfter', changedAfter);
+					if (decisionDateBefore) params.append('decisionDateBefore', decisionDateBefore);
+					if (decisionDateAfter) params.append('decisionDateAfter', decisionDateAfter);
+
+					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/?${params.toString()}`);
 
 					if (!response.ok) {
 						return {
@@ -68,10 +91,33 @@ export class MyMCP extends McpAgent {
 			"get_legislation_databases",
 			{
 				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
+				
+				// optional date parameters
+				publishedBefore: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				publishedAfter: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				modifiedBefore: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				modifiedAfter: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				changedBefore: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				changedAfter: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				decisionDateBefore: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
+				decisionDateAfter: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
 			},
-			async ({ language }) => {
+			async ({ language, publishedBefore, publishedAfter, modifiedBefore, modifiedAfter, changedBefore, changedAfter, decisionDateBefore, decisionDateAfter }) => {
 				try {
-					const response = await fetch(`https://api.canlii.org/v1/legislationBrowse/${language}/?api_key=${this.apiKey}`);
+					const params = new URLSearchParams({
+						api_key: this.apiKey,
+					});
+
+					if (publishedBefore) params.append('publishedBefore', publishedBefore);
+					if (publishedAfter) params.append('publishedAfter', publishedAfter);
+					if (modifiedBefore) params.append('modifiedBefore', modifiedBefore);
+					if (modifiedAfter) params.append('modifiedAfter', modifiedAfter);
+					if (changedBefore) params.append('changedBefore', changedBefore);
+					if (changedAfter) params.append('changedAfter', changedAfter);
+					if (decisionDateBefore) params.append('decisionDateBefore', decisionDateBefore);
+					if (decisionDateAfter) params.append('decisionDateAfter', decisionDateAfter);
+
+					const response = await fetch(`https://api.canlii.org/v1/legislationBrowse/${language}/?${params.toString()}`);
 
 					if (!response.ok) {
 						return {
@@ -86,7 +132,7 @@ export class MyMCP extends McpAgent {
 
 					const data = await response.json();
 					const parsed = LegislationResponseSchema.parse(data);
-					
+
 					return {
 						content: [
 							{
@@ -115,10 +161,33 @@ export class MyMCP extends McpAgent {
 				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
 				caseId: z.string().describe("The case's unique identifier, as returned by the previous type of call. Generally corresponds to the CanLII citation."),
 				metadataType: z.enum(["citedCases", "citingCases", "citedLegislations"]).describe("The type of citation metadata to fetch: citedCases (what this case cites), citingCases (what cases cite this case), or citedLegislations (what legislation this case cites)"),
+				
+				// optional date parameters
+				publishedBefore: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				publishedAfter: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				modifiedBefore: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				modifiedAfter: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				changedBefore: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				changedAfter: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				decisionDateBefore: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
+				decisionDateAfter: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
 			},
-			async ({ language, databaseId, caseId, metadataType }) => {
+			async ({ language, databaseId, caseId, metadataType, publishedBefore, publishedAfter, modifiedBefore, modifiedAfter, changedBefore, changedAfter, decisionDateBefore, decisionDateAfter }) => {
 				try {
-					const response = await fetch(`https://api.canlii.org/v1/caseCitator/${language}/${databaseId}/${caseId}/${metadataType}?api_key=${this.apiKey}`);
+					const params = new URLSearchParams({
+						api_key: this.apiKey,
+					});
+
+					if (publishedBefore) params.append('publishedBefore', publishedBefore);
+					if (publishedAfter) params.append('publishedAfter', publishedAfter);
+					if (modifiedBefore) params.append('modifiedBefore', modifiedBefore);
+					if (modifiedAfter) params.append('modifiedAfter', modifiedAfter);
+					if (changedBefore) params.append('changedBefore', changedBefore);
+					if (changedAfter) params.append('changedAfter', changedAfter);
+					if (decisionDateBefore) params.append('decisionDateBefore', decisionDateBefore);
+					if (decisionDateAfter) params.append('decisionDateAfter', decisionDateAfter);
+
+					const response = await fetch(`https://api.canlii.org/v1/caseCitator/${language}/${databaseId}/${caseId}/${metadataType}?${params.toString()}`);
 
 					if (!response.ok) {
 						return {
@@ -132,7 +201,22 @@ export class MyMCP extends McpAgent {
 					}
 
 					const data = await response.json();
-					const parsed = CitedCasesResponseSchema.parse(data);
+					
+					// Use the appropriate schema based on metadataType
+					let parsed;
+					switch (metadataType) {
+						case 'citedCases':
+							parsed = CitedCasesResponseSchema.parse(data);
+							break;
+						case 'citingCases':
+							parsed = CitingCasesResponseSchema.parse(data);
+							break;
+						case 'citedLegislations':
+							parsed = CitedLegislationsResponseSchema.parse(data);
+							break;
+						default:
+							throw new Error(`Unknown metadataType: ${metadataType}`);
+					}
 
 					return {
 						content: [
@@ -161,10 +245,33 @@ export class MyMCP extends McpAgent {
 				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
 				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
 				caseId: z.string().describe("The case's unique identifier, as returned by the previous type of call. Generally corresponds to the CanLII citation."),
+				
+				// optional date parameters
+				publishedBefore: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				publishedAfter: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
+				modifiedBefore: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				modifiedAfter: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
+				changedBefore: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				changedAfter: z.string().optional().describe("The date the metadata of the decision or its content was last modified on CanLII (YYYY-MM-DD format)"),
+				decisionDateBefore: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
+				decisionDateAfter: z.string().optional().describe("The date of the decision (YYYY-MM-DD format)"),
 			},
-			async ({ language, databaseId, caseId }) => {
+			async ({ language, databaseId, caseId, publishedBefore, publishedAfter, modifiedBefore, modifiedAfter, changedBefore, changedAfter, decisionDateBefore, decisionDateAfter }) => {
 				try {
-					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/${databaseId}/${caseId}/?api_key=${this.apiKey}`);
+					const params = new URLSearchParams({
+						api_key: this.apiKey,
+					});
+
+					if (publishedBefore) params.append('publishedBefore', publishedBefore);
+					if (publishedAfter) params.append('publishedAfter', publishedAfter);
+					if (modifiedBefore) params.append('modifiedBefore', modifiedBefore);
+					if (modifiedAfter) params.append('modifiedAfter', modifiedAfter);
+					if (changedBefore) params.append('changedBefore', changedBefore);
+					if (changedAfter) params.append('changedAfter', changedAfter);
+					if (decisionDateBefore) params.append('decisionDateBefore', decisionDateBefore);
+					if (decisionDateAfter) params.append('decisionDateAfter', decisionDateAfter);
+
+					const response = await fetch(`https://api.canlii.org/v1/caseBrowse/${language}/${databaseId}/${caseId}/?${params.toString()}`);
 
 					if (!response.ok) {
 						return {
@@ -208,7 +315,8 @@ export class MyMCP extends McpAgent {
 				databaseId: z.string().describe("The database identifier from which to fetch decisions"),
 				offset: z.number().describe("The record number from which to start returning results. Using 0 will return the records most recently added to that database"),
 				resultCount: z.number().max(10000).describe("The length of the list of results that will be returned. Max 10,000"),
-				// Optional date parameters
+
+				// optional date parameters
 				publishedBefore: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
 				publishedAfter: z.string().optional().describe("The date when the decision was first published on CanLII (YYYY-MM-DD format)"),
 				modifiedBefore: z.string().optional().describe("The date when the content of the decision was last modified on CanLII (YYYY-MM-DD format)"),
@@ -220,14 +328,13 @@ export class MyMCP extends McpAgent {
 			},
 			async ({ language, databaseId, offset, resultCount, publishedBefore, publishedAfter, modifiedBefore, modifiedAfter, changedBefore, changedAfter, decisionDateBefore, decisionDateAfter }) => {
 				try {
-					// Build the query parameters
+
 					const params = new URLSearchParams({
 						api_key: this.apiKey,
 						offset: offset.toString(),
 						resultCount: resultCount.toString(),
 					});
 
-					// Add optional date parameters if provided
 					if (publishedBefore) params.append('publishedBefore', publishedBefore);
 					if (publishedAfter) params.append('publishedAfter', publishedAfter);
 					if (modifiedBefore) params.append('modifiedBefore', modifiedBefore);

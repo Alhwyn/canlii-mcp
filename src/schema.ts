@@ -55,8 +55,26 @@ export const LegislationResponseSchema = z.object({
     legislationDatabases: z.array(LegislationSchema),
 });
 
+export const LegislationItemSchema = z.object({
+    databaseId: z.string(),
+    legislationId: z.string(),
+    title: z.string(),
+    citation: z.string(),
+    type: z.string(),
+});
 
 
+export const LegislationItemResponseSchema = z.object({
+    legislations: z.array(LegislationItemSchema),
+});
+
+export const CitingCasesResponseSchema = z.object({
+    citingCases: z.array(CaseSchema),
+});
+
+export const CitedLegislationsResponseSchema = z.object({
+    citedLegislations: z.array(LegislationItemSchema),
+});
 
 export type CaseDatabase = z.infer<typeof CaseDatabaseSchema>;
 export type CaseId = z.infer<typeof CaseIdSchema>;
@@ -65,4 +83,6 @@ export type Case = z.infer<typeof CaseSchema>;
 export type CaseDatabasesResponse = z.infer<typeof CaseDatabasesResponseSchema>;
 export type CasesResponse = z.infer<typeof CasesResponseSchema>;
 export type CitedCasesResponse = z.infer<typeof CitedCasesResponseSchema>;
+export type CitingCasesResponse = z.infer<typeof CitingCasesResponseSchema>;
+export type CitedLegislationsResponse = z.infer<typeof CitedLegislationsResponseSchema>;
 export type CaseMetadataResponse = z.infer<typeof CaseMetadataSchema>;
