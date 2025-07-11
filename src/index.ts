@@ -2,6 +2,7 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema, CitingCasesResponseSchema, CitedLegislationsResponseSchema, LegislationResponseSchema, LegislationItemResponseSchema, LegislationMetadataSchema } from "./schema.js";
+import { scrapeTextFromUrl } from "../util/scraper.js";
 
 
 // Define our MCP agent with tools
@@ -485,6 +486,58 @@ export class MyMCP extends McpAgent {
 							{
 								type: "text",
 								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
+				}
+			}
+		);
+
+		this.server.tool(
+			"scrape_website",
+			{
+				url: z.string().describe("The URL of the website to scrape text content from"),
+				excludeTags: z.string().optional().describe("Comma-separated list of HTML tags to exclude (default: script,style,nav,header,footer,aside)"),
+				includeTags: z.string().optional().describe("Comma-separated list of HTML tags to include (if specified, only these tags will be scraped)"),
+				maxRedirects: z.number().optional().describe("Maximum number of redirects to follow (default: 10)"),
+				userAgent: z.string().optional().describe("User agent string to use for the request (default: Mozilla/5.0 compatible)")
+			},
+			async ({ url, excludeTags, includeTags, maxRedirects, userAgent }) => {
+				try {
+					const options = {
+						...(excludeTags && { excludeTags }),
+						...(includeTags && { includeTags }),
+						...(maxRedirects && { maxRedirects }),
+						...(userAgent && { userAgent })
+					};
+
+					const result = await scrapeTextFromUrl(url, options);
+
+					if (result.error) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error scraping website: ${result.error}`,
+								},
+							],
+						};
+					}
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: result.text || "",
 							},
 						],
 					};
