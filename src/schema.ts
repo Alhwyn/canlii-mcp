@@ -1,3 +1,4 @@
+import { title } from "process";
 import { z } from "zod";
 
 
@@ -43,6 +44,26 @@ export const CaseMetadataSchema = z.object({
     keywords: z.string(),
     concatenatedId: z.string(),
 });
+
+export const LegislationMetadataContentSchema = z.object({
+    partId: z.string(),
+    partName: z.string(),
+});
+
+export const LegislationMetadataSchema = z.object({
+    legislationId: z.string(),
+    url: z.string(),
+    title: z.string(),
+    citation: z.string(),
+    language: z.string(),
+    dateSchema: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    repealed: z.string().optional(),
+    content: z.array(LegislationMetadataContentSchema).optional(),
+});
+
+
 
 export const LegislationSchema = z.object({
     databaseId: z.string(),

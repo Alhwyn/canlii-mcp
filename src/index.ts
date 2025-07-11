@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema, CitingCasesResponseSchema, CitedLegislationsResponseSchema, LegislationResponseSchema, LegislationItemResponseSchema } from "./schema.js";
+import { CaseDatabasesResponseSchema, CasesResponseSchema, CaseMetadataSchema, CitedCasesResponseSchema, CitingCasesResponseSchema, CitedLegislationsResponseSchema, LegislationResponseSchema, LegislationItemResponseSchema, LegislationMetadataSchema } from "./schema.js";
 
 
 // Define our MCP agent with tools
@@ -134,6 +134,57 @@ export class MyMCP extends McpAgent {
 
 					const data = await response.json();
 					const parsed = LegislationItemResponseSchema.parse(data);
+
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(parsed, null, 2),
+							},
+						],
+					};
+				} catch (error) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+							},
+						],
+					};
+				}
+			}
+		);
+
+		this.server.tool(
+			"get_legislation_regulation_metadata",
+			{
+				language: z.enum(["en", "fr"]).describe("The language option: 'en' for English or 'fr' for French"),
+				databaseId: z.string().describe("The code for the database for which you want a list. Generally, this will be the provincial or territorial two-letter code, followed by either 's' (for statutes), 'r' (for regulations), or 'a'"),
+				legislationId: z.string().describe("Specific ID for the piece of legislation that is being queried."),
+			},
+			async ({ language, databaseId, legislationId }) => {
+				try {
+					const params = new URLSearchParams({
+						api_key: this.apiKey,
+					});
+
+
+					const response = await fetch(`https://api.canlii.org/v1/legislationBrowse/${language}/${databaseId}/${legislationId}/?${params.toString()}`);
+
+					if (!response.ok) {
+						return {
+							content: [
+								{
+									type: "text",
+									text: `Error: Failed to fetch legislation metadata (${response.status})`,
+								},
+							],
+						};
+					}
+
+					const data = await response.json();
+					const parsed = LegislationMetadataSchema.parse(data);
 
 					return {
 						content: [
