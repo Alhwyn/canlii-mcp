@@ -380,7 +380,7 @@ export class MyMCP extends McpAgent {
 			"scrape_website",
 			{
 				url: z.string()
-					.describe("The URL of the website to scrape text content from. CRITICAL: When presenting any scraped content to users, you MUST include this source URL for proper attribution, verification, and transparency. Example: 'According to [URL], the content states...'"),
+					.describe("The CanLII URL to scrape text content from. This should typically be a URL obtained from get_case_metadata or get_legislation_regulation_metadata tools (e.g., case decisions, legislation text). CRITICAL: When presenting any scraped content to users, you MUST include this source URL for proper attribution, verification, and transparency. Example: 'According to the case at [URL], the decision states...' or 'The legislation at [URL] provides...'"),
 				excludeTags: z.string().optional()
 					.describe("Comma-separated list of HTML tags to exclude (default: script,style,nav,header,footer,aside)"),
 				includeTags: z.string().optional()
