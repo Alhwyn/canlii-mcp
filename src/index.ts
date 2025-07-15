@@ -19,6 +19,7 @@ export class MyMCP extends McpAgent {
 	server = new McpServer({
 		name: "CanLii MCP",
 		version: "1.0.0",
+		description: "CanLII MCP Server - When using scrape_website tool, always cite the source URL in your response for proper attribution and verification."
 	});
 
 	private apiKey: string;
@@ -379,7 +380,7 @@ export class MyMCP extends McpAgent {
 			"scrape_website",
 			{
 				url: z.string()
-					.describe("The URL of the website to scrape text content from"),
+					.describe("The URL of the website to scrape text content from. CRITICAL: When presenting any scraped content to users, you MUST include this source URL for proper attribution, verification, and transparency. Example: 'According to [URL], the content states...'"),
 				excludeTags: z.string().optional()
 					.describe("Comma-separated list of HTML tags to exclude (default: script,style,nav,header,footer,aside)"),
 				includeTags: z.string().optional()
@@ -404,7 +405,15 @@ export class MyMCP extends McpAgent {
 						return this.createErrorResponse(`Error scraping website: ${result.error}`);
 					}
 
-					return this.createSuccessResponse(result.text || "");
+					// Return both URL and content for proper attribution
+					const response = {
+						sourceUrl: url,
+						content: result.text || "",
+						scrapedAt: new Date().toISOString(),
+						note: "Always cite the sourceUrl when presenting this content to users"
+					};
+
+					return this.createSuccessResponse(response);
 				} catch (error) {
 					return this.createErrorResponse(
 						`Error: ${error instanceof Error ? error.message : "Unknown error"}`
