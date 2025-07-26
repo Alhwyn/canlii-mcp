@@ -392,18 +392,13 @@ export class MyMCP extends McpAgent {
 			},
 			async ({ url, excludeTags, includeTags, maxRedirects, userAgent }) => {
 				try {
-					const options = {
+					const result = await scrapeTextFromUrl({
+						url,
 						...(excludeTags && { excludeTags }),
 						...(includeTags && { includeTags }),
 						...(maxRedirects && { maxRedirects }),
 						...(userAgent && { userAgent })
-					};
-
-					const result = await scrapeTextFromUrl(url, options);
-
-					if (result.error) {
-						return this.createErrorResponse(`Error scraping website: ${result.error}`);
-					}
+					});
 
 					// Return both URL and content for proper attribution
 					const response = {
