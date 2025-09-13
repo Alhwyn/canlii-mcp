@@ -12,7 +12,6 @@ import {
 	LegislationItemResponseSchema,
 	LegislationMetadataSchema
 } from "./schema.js";
-import { scrapeTextFromUrl } from "../util/scraper.js";
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
@@ -368,47 +367,6 @@ export class MyMCP extends McpAgent {
 					const parsed = CasesResponseSchema.parse(data);
 
 					return this.createSuccessResponse(parsed);
-				} catch (error) {
-					return this.createErrorResponse(
-						`Error: ${error instanceof Error ? error.message : "Unknown error"}`
-					);
-				}
-			}
-		);
-
-		this.server.tool(
-			"scrape_website",
-			{
-				url: z.string()
-					.describe("The CanLII URL to scrape text content from. This should typically be a URL obtained from get_case_metadata or get_legislation_regulation_metadata tools (e.g., case decisions, legislation text). CRITICAL: When presenting any scraped content to users, you MUST include this source URL for proper attribution, verification, and transparency. Example: 'According to the case at [URL], the decision states...' or 'The legislation at [URL] provides...'"),
-				excludeTags: z.string().optional()
-					.describe("Comma-separated list of HTML tags to exclude (default: script,style,nav,header,footer,aside)"),
-				includeTags: z.string().optional()
-					.describe("Comma-separated list of HTML tags to include (if specified, only these tags will be scraped)"),
-				maxRedirects: z.number().optional()
-					.describe("Maximum number of redirects to follow (default: 10)"),
-				userAgent: z.string().optional()
-					.describe("User agent string to use for the request (default: Mozilla/5.0 compatible)")
-			},
-			async ({ url, excludeTags, includeTags, maxRedirects, userAgent }) => {
-				try {
-					const result = await scrapeTextFromUrl({
-						url,
-						...(excludeTags && { excludeTags }),
-						...(includeTags && { includeTags }),
-						...(maxRedirects && { maxRedirects }),
-						...(userAgent && { userAgent })
-					});
-
-					// Return both URL and content for proper attribution
-					const response = {
-						sourceUrl: url,
-						content: result.text || "",
-						scrapedAt: new Date().toISOString(),
-						note: "Always cite the sourceUrl when presenting this content to users"
-					};
-
-					return this.createSuccessResponse(response);
 				} catch (error) {
 					return this.createErrorResponse(
 						`Error: ${error instanceof Error ? error.message : "Unknown error"}`
