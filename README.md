@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/alhwyn-canlii-mcp-badge.png)](https://mseep.ai/app/alhwyn-canlii-mcp)
+
 # CanLII MCP Server
 
 A Model Context Protocol (MCP) server that provides access to the CanLII (Canadian Legal Information Institute) API. This server allows AI assistants to search and retrieve Canadian legal information including court decisions, legislation, and legal citations.
